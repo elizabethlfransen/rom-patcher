@@ -16,14 +16,14 @@ All the following patch formats are planned.
 
  <!-- TODO: Add documentation to docs folder for archival reasons. --> 
 
-| Patch Format                                                                                               | Applying | Creating |
-|------------------------------------------------------------------------------------------------------------|----------|----------|
-| [IPS](http://fileformats.archiveteam.org/wiki/IPS_(binary_patch_format))                                   | :x:      | :x:      |
-| [UPS](http://fileformats.archiveteam.org/wiki/UPS_(binary_patch_format))                                   | :x:      | :x:      |
-| [APS (GBA)](https://github.com/btimofeev/UniPatcher/wiki/APS-(GBA))                                        | :x:      | :x:      |
-| [APS (N64)](https://github.com/btimofeev/UniPatcher/wiki/APS-(N64))                                        | :x:      | :x:      |
-| [BPS](doc/BPS.md)                                                                                          | :x:      | :x:      |
-| [RUP](doc/RUP.txt)                                                                                         | :x:      | :x:      |
-| [PPF](doc/PPF3.txt)                                                                                        | :x:      | :x:      |
-| [Paper Mario Star Rod (.mod)](https://github.com/marcrobledo/RomPatcher.js/blob/master/js/formats/pmsr.js) | :x:      | :x:      |
-| [VCDiff](https://tools.ietf.org/html/rfc3284)                                                              | :x:      | :x:      |
+| Patch Format                                                                                               | Applying | Creating | Reading            | Writing            |
+|------------------------------------------------------------------------------------------------------------|----------|----------|--------------------|--------------------|
+| [IPS](http://fileformats.archiveteam.org/wiki/IPS_(binary_patch_format))                                   | :x:      | :x:      | :heavy_check_mark: | :heavy_check_mark: |
+| [UPS](http://fileformats.archiveteam.org/wiki/UPS_(binary_patch_format))                                   | :x:      | :x:      | :x:                | :x:                |
+| [APS (GBA)](https://github.com/btimofeev/UniPatcher/wiki/APS-(GBA))                                        | :x:      | :x:      | :x:                | :x:                |
+| [APS (N64)](https://github.com/btimofeev/UniPatcher/wiki/APS-(N64))                                        | :x:      | :x:      | :x:                | :x:                |
+| [BPS](doc/BPS.md)                                                                                          | :x:      | :x:      | :x:                | :x:                |
+| [RUP](doc/RUP.txt)                                                                                         | :x:      | :x:      | :x:                | :x:                |
+| [PPF](doc/PPF3.txt)                                                                                        | :x:      | :x:      | :x:                | :x:                |
+| [Paper Mario Star Rod (.mod)](https://github.com/marcrobledo/RomPatcher.js/blob/master/js/formats/pmsr.js) | :x:      | :x:      | :x:                | :x:                |
+| [VCDiff](https://tools.ietf.org/html/rfc3284)                                                              | :x:      | :x:      | :x:                | :x:                |
