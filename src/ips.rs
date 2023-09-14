@@ -1,7 +1,7 @@
-use std::io::{ErrorKind, Read, Result as IOResult};
+use std::io::{ErrorKind, Read, Result as IOResult, Seek, SeekFrom};
 use std::io::Write;
 use crate::{Error, ErrorKind as PatchErrorKind};
-use crate::ErrorKind::ParsingError;
+use crate::ErrorKind::{ParsingError, PatchingError};
 
 use crate::io_util::{AssertRead, ReaderExtensions, U32Extensions};
 
@@ -38,6 +38,15 @@ impl IPSRegularHunkData {
             payload: payload.into_boxed_slice(),
         }));
         return Ok(());
+    }
+
+    /// Applies patch to `target`.
+    fn apply<T>(&self, target: &mut T) -> Result<(),Error> where T : Seek + Write {
+        target.seek(SeekFrom::Start(self.offset as u64))
+            .map_err(|_| Error::new(PatchingError).with_description("Unable to apply ips regular hunk.".to_string()))?;
+        target.write_all(self.payload.as_ref())
+            .map_err(|_|Error::new(PatchingError).with_description("Unable to apply ips regular hunk.".to_string()))?;
+        Ok(())
     }
 }
 
@@ -76,6 +85,18 @@ impl IPSRLEHunkData {
             payload,
         }));
         return Ok(());
+    }
+
+    /// Applies patch to `target`.
+    fn apply<T>(&self, target: &mut T) -> Result<(), Error> where T : Seek + Write {
+        // go to the offset
+        target.seek(SeekFrom::Start(self.offset as u64))
+            .map_err(|_| Error::new(PatchingError).with_description("Unable to apply ips RLE hunk.".to_string()))?;
+
+        // write the payload
+        target.write_all(vec![self.payload;self.run_length as usize].as_slice())
+            .map_err(|_|Error::new(PatchingError).with_description("Unable to apply ips RLE hunk.".to_string()))?;
+        Ok(())
     }
 }
 
@@ -136,6 +157,14 @@ impl IPSHunk {
             IPSRegularHunkData::read(reader, offset, length, result)?;
         }
         return Ok(true);
+    }
+
+    /// Applies the hunk to `target`.
+    fn apply<T>(&self, target: &mut T) -> Result<(), Error> where T : Seek + Write {
+        match self {
+            IPSHunk::Regular(x) => x.apply(target),
+            IPSHunk::RLE(x) => x.apply(target)
+        }
     }
 }
 
@@ -280,6 +309,15 @@ impl IPSPatch {
         Self::read_header(reader)?;
         while IPSHunk::try_read(reader, &mut result)? {}
         return Ok(result);
+    }
+
+
+    /// Applies the patch to `target`.
+    pub fn apply<T>(&self, target: &mut T) -> Result<(),Error> where T : Write + Seek {
+        for hunk in &self.hunks {
+            hunk.apply(target)?;
+        }
+        Ok(())
     }
 }
 
@@ -478,6 +516,51 @@ mod tests {
         fn read_multiple_hunks() {
             let actual = IPSPatch::read_from(&mut patch_with_multiple_hunks_data().as_slice()).unwrap();
             assert_that!(actual).is_equal_to(patch_with_multiple_hunks());
+        }
+    }
+
+    mod apply_tests {
+        use std::fs::{copy, File, remove_file};
+        use super::*;
+        use std::io::Cursor;
+        use std::path::Path;
+
+        #[test]
+        fn apply_empty_patch_does_nothing_to_input() {
+            let base : Vec<u8> = (0..16).collect();
+            let mut target = Cursor::new(base.clone());
+            let patch = EMPTY_PATCH;
+
+            assert_that!(patch.apply(&mut target)).is_ok();
+            assert_that!(target.get_ref()).is_equal_to(&base);
+        }
+        #[test]
+        fn apply_regular_hunk() {
+            let mut target = Cursor::new((0..16).collect());
+            let patch = IPSPatch::new()
+                .with_hunk(IPSHunk::Regular(IPSRegularHunkData {
+                    offset: 1,
+                    length: 3,
+                    payload: Box::new([0xa, 0xb, 0xc])
+                }));
+            let expected = vec![0x0, 0xa, 0xb, 0xc, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF];
+
+            assert_that!(patch.apply(&mut target)).is_ok();
+            assert_that!(target.get_ref()).is_equal_to(&expected);
+        }
+        #[test]
+        fn apply_rle_hunk() {
+            let mut target = Cursor::new((0..16).collect());
+            let patch = IPSPatch::new()
+                .with_hunk(IPSHunk::RLE(IPSRLEHunkData {
+                    offset: 1,
+                    run_length: 3,
+                    payload: 0xa
+                }));
+            let expected = vec![0x0, 0xa, 0xa, 0xa, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF];
+
+            assert_that!(patch.apply(&mut target)).is_ok();
+            assert_that!(target.get_ref()).is_equal_to(&expected);
         }
     }
 }
