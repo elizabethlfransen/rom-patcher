@@ -1,4 +1,5 @@
-use std::io::Read;
+use std::fs::File;
+use std::io::{Cursor, Read, Result as IOResult};
 use crate::Error;
 use crate::ErrorKind::ParsingError;
 
@@ -72,6 +73,31 @@ impl<T> AssertRead for T where T: Read {
         if buf != expected {
             return Err(Error::new(ParsingError).with_description(parse_error_message));
         }
+        Ok(())
+    }
+}
+
+
+pub trait Truncate {
+    fn truncate(&mut self, amount: u32) -> IOResult<()>;
+}
+
+impl Truncate for Vec<u8> {
+    fn truncate(&mut self, amount: u32) -> IOResult<()> {
+        self.truncate(amount as usize);
+        Ok(())
+    }
+}
+
+impl Truncate for File {
+    fn truncate(&mut self, amount: u32) -> IOResult<()> {
+        self.set_len(self.metadata().unwrap().len().min(amount as u64))
+    }
+}
+
+impl <T> Truncate for Cursor<T> where T : Truncate {
+    fn truncate(&mut self, amount: u32) -> IOResult<()> {
+        self.get_mut().truncate(amount)?;
         Ok(())
     }
 }
